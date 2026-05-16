@@ -9,11 +9,14 @@ Refernce Resources/transactions_history_final.csv
 
 # ── Generated Data (reproduce via pipeline) ──
 data/bronze/*.parquet
-data/silver/*.parquet
+data/silver/**/*.parquet
 data/silver/rejected/*.parquet
 data/silver/rejected/rejection_manifest.csv
 data/gold/*.parquet
+data/models/*.parquet
 data/bronze/poi_raw/*.parquet
+data/overture/
+data/external/
 
 # ── Logs ──
 logs/*.log
@@ -39,4 +42,4 @@ env/
 
 # ── Keep empty dirs ──
 !**/.gitkeep
-src/bronze/*.csv
+src/bronze/*.csv
