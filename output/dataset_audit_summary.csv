@@ -1,0 +1,6 @@
+dataset,rows,columns,duplicates,missing_values
+transactions,2376389,7,0,0
+outlet_master,20000,4,0,196
+coordinates,20000,3,0,0
+holidays,349,3,93,0
+seasonality,360,4,0,0
