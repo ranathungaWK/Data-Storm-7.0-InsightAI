@@ -39,3 +39,4 @@ env/
 
 # ── Keep empty dirs ──
 !**/.gitkeep
+src/bronze/*.csv
