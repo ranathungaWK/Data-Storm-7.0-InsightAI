@@ -1,0 +1,8 @@
+Model B - Store Capacity
+
+Source: ../store_capacity_feature_importance.csv
+Uses only outlet_size and cooler_count.
+
+Top feature importances:
+1. outlet_size - 237097.3172057212
+2. cooler_count - 21648.655071749086

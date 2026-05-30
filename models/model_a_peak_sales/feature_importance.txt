@@ -1,0 +1,26 @@
+Model A - Peak Sales
+
+Source: ../peak_sales_feature_importance.csv
+Uses history features plus location and business context. This is the historical peak-sales model.
+
+Top feature importances:
+1. revenue_per_tx - 78110.89166045655
+2. avg_monthly_volume - 67867.79489111676
+3. volume_std - 52201.32554108556
+4. avg_monthly_volume_calendar - 47355.66685634256
+5. total_revenue - 40530.83981428594
+6. transaction_count - 34123.90640931427
+7. total_volume - 11193.650873985887
+8. volume_cv - 9348.843298480471
+9. nearest_competitor_distance - 4023.985469143093
+10. saturation_score - 3931.231666853279
+11. competitive_pressure - 3882.386497735791
+12. poi_influence_score - 3323.459891326725
+13. active_months - 2094.904452037811
+14. outlet_type - 1810.2122017800807
+15. accessibility_weighted_score - 1391.7156144857406
+16. competitor_count_1km - 1375.0613691512494
+17. competitor_count_500m - 981.9692647337912
+18. commercial_score - 781.181027507782
+19. cooler_count - 708.6196748018265
+20. sales_frequency - 420.9052757769823

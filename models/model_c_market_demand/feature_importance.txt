@@ -1,0 +1,21 @@
+Model C - Market Demand
+
+Source: ../market_demand_feature_importance.csv
+Uses only POI, competition, accessibility, mobility, and commercial activity.
+
+Top feature importances:
+1. nearest_competitor_distance - 5353.61466947794
+2. saturation_score - 4875.872531414032
+3. poi_influence_score - 4527.351484262943
+4. accessibility_weighted_score - 3344.443777048588
+5. outlet_type - 1965.8774562597275
+6. competitor_count_1km - 1655.989501786232
+7. commercial_score - 1551.9723861694335
+8. competitor_count_500m - 1376.3785960555076
+9. restaurant - 813.8870267510414
+10. mobility_score - 493.9063488721848
+11. accessibility_score - 447.6295680403709
+12. public_transit_facility_or_service - 0.0
+13. air_transport_facility_or_service - 0.0
+14. train_station - 0.0
+15. ground_transport_facility_or_service - 0.0
