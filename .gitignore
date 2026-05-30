@@ -6,6 +6,10 @@
 
 # ── Large Data Files (exceed GitHub 100MB limit) ──
 Refernce Resources/transactions_history_final.csv
+src/bronze/transactions_history_final.csv
+data/external/sri-lanka-latest.osm.pbf
+models/rf_model.pkl
+data/silver/cleaned/transactions_cleaned.parquet
 
 # ── Generated Data (reproduce via pipeline) ──
 data/bronze/*.parquet

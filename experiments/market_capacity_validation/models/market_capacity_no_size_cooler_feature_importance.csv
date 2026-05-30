@@ -1,0 +1,17 @@
+feature,importance
+saturation_score,4840.454557025432
+nearest_competitor_distance,4671.200223398208
+poi_influence_score,3709.661618280411
+accessibility_weighted_score,2649.4204639196396
+outlet_type,1936.020162177086
+commercial_score,1559.3276542663575
+competitor_count_1km,1381.478734922409
+master_completeness_score,1307.312137746811
+competitor_count_500m,1235.8757640600204
+restaurant,767.8794541597366
+mobility_score,683.2828485965729
+accessibility_score,345.81149687767027
+train_station,0.0
+public_transit_facility_or_service,0.0
+ground_transport_facility_or_service,0.0
+air_transport_facility_or_service,0.0

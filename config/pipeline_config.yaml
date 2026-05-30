@@ -26,25 +26,35 @@ paths:
     poi_raw: "data/bronze/poi_raw"
 
   silver:
-    root: "data/silver"
-    transactions: "data/silver/transactions_clean.parquet"
-    outlet_master: "data/silver/outlet_master_clean.parquet"
-    outlet_coordinates: "data/silver/outlet_coordinates_clean.parquet"
-    distributor_seasonality: "data/silver/distributor_seasonality_clean.parquet"
-    holiday_list: "data/silver/holiday_list_clean.parquet"
-    poi: "data/silver/poi_clean.parquet"
+
+    cleaned_dir: "data/silver/cleaned"
+    transactions:
+      cleaned: "data/silver/cleaned/transactions_cleaned.parquet"
+    outlet_master:
+      cleaned: "data/silver/cleaned/outlet_master_cleaned.parquet"
+    outlet_coordinates:
+      cleaned: "data/silver/cleaned/outlet_coordinates.parquet"
+    holidays:
+      cleaned: "data/silver/cleaned/holidays_cleaned.parquet"
     rejected_dir: "data/silver/rejected"
-    rejection_manifest: "data/silver/rejected/rejection_manifest.csv"
+    rejection_manifest: "logs/rejection_manifest.csv"
+    rejection_metrics: "logs/rejection_metrics.csv"
 
   gold:
-    root: "data/gold"
-    outlet_features: "data/gold/outlet_features.parquet"
-    censoring_indicators: "data/gold/censoring_indicators.parquet"
-    model_input: "data/gold/model_input.parquet"
 
-  output:
-    predictions: "output/insightai_predictions.csv"
-    report: "output/report"
+    transaction_features:
+      path: "data/gold/transaction_features.parquet"
+    outlet_profile:
+      path: "data/gold/outlet_profile.parquet"
+    seasonality_features:
+      path: "data/gold/seasonality_features.parquet"
+    poi_features:
+      path: "data/gold/poi_features.parquet"
+    model_input:
+      path: "data/gold/model_input.parquet"
+    output:
+      predictions: "output/insightai_predictions.csv"
+      report: "output/report"
 
 # ── DQ Check Thresholds ────────────────────────────────────
 

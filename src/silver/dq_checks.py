@@ -1,160 +1,224 @@
-"""
-Reusable Data Quality Checks — Parameterizable functions for the Silver layer.
-
-Every check returns a DataFrame of FAILED records with a standardized schema:
-    dataset | check_type | column | key_value | row_index | reason | original_value | timestamp
-
-These are collected and sent to the quarantine system (see quarantine.py).
-
-Usage:
-    from src.silver.dq_checks import check_duplicates, check_nulls
-    failures = check_duplicates(df, key_columns=["Outlet_ID", "Year", "Month"], dataset_name="transactions")
-"""
+#Industrial-Grade Reusable Data Quality Framework
 
 from datetime import datetime
 from typing import Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from src.utils.logger import get_logger
 
 logger = get_logger("silver.dq_checks")
 
 
-# ── Standardized Rejection Record Schema ─────────────────────
+# REJECTION SCHEMA
+
+REJECTION_COLUMNS = [
+    "dataset",
+    "rule_id",
+    "check_type",
+    "severity",
+    "column",
+    "key_value",
+    "row_index",
+    "reason",
+    "original_value",
+    "timestamp",
+]
+
+# INTERNAL UTILITIES
+
+def _current_timestamp() -> str:
+    return datetime.now().isoformat()
 
 
-def _rejection_record(
-    dataset: str,
+def _empty_rejection_df() -> pd.DataFrame:
+    return pd.DataFrame(columns=REJECTION_COLUMNS)
+
+
+def _build_summary(
+    dataset_name: str,
+    rule_id: str,
     check_type: str,
-    column: str,
-    key_value: str,
-    row_index: int,
-    reason: str,
-    original_value: str,
+    rows_checked: int,
+    violations: int,
+    severity: str,
 ) -> dict:
-    """Create a single standardized rejection record."""
+
+    violation_rate = (
+        round((violations / rows_checked) * 100, 4)
+        if rows_checked > 0
+        else 0
+    )
+
     return {
-        "dataset": dataset,
+        "dataset": dataset_name,
+        "rule_id": rule_id,
         "check_type": check_type,
-        "column": column,
-        "key_value": str(key_value),
-        "row_index": int(row_index),
-        "reason": reason,
-        "original_value": str(original_value),
-        "timestamp": datetime.now().isoformat(),
+        "severity": severity,
+        "rows_checked": rows_checked,
+        "violations": violations,
+        "violation_rate_percent": violation_rate,
+        "timestamp": _current_timestamp(),
     }
 
 
-def _build_rejection_df(records: list[dict]) -> pd.DataFrame:
-    """Convert a list of rejection dicts to a standardized DataFrame."""
-    if not records:
-        return pd.DataFrame(
-            columns=[
-                "dataset", "check_type", "column", "key_value",
-                "row_index", "reason", "original_value", "timestamp"
-            ]
-        )
-    return pd.DataFrame(records)
+def _package_result(
+    failed_records: pd.DataFrame,
+    summary: dict,
+) -> dict:
+
+    return {
+        "failed_records": failed_records,
+        "summary": summary,
+    }
 
 
-# ── DQ Check Functions ───────────────────────────────────────
+def _create_rejection_df(
+    df: pd.DataFrame,
+    dataset_name: str,
+    rule_id: str,
+    check_type: str,
+    severity: str,
+    column: str,
+    reason: str,
+    original_value_column: Optional[str] = None,
+    id_column: str = "outlet_id",
+) -> pd.DataFrame:
 
+    if df.empty:
+        return _empty_rejection_df()
+
+    rejection_df = pd.DataFrame({
+        "dataset": dataset_name,
+        "rule_id": rule_id,
+        "check_type": check_type,
+        "severity": severity,
+        "column": column,
+        "key_value": (
+            df[id_column].astype(str)
+            if id_column in df.columns
+            else ""
+        ),
+        "row_index": df.index,
+        "reason": reason,
+        "original_value": (
+            df[original_value_column].astype(str)
+            if original_value_column
+            else ""
+        ),
+        "timestamp": _current_timestamp(),
+    })
+
+    return rejection_df[REJECTION_COLUMNS]
+
+
+# STRUCTURAL CHECKS
 
 def check_duplicates(
     df: pd.DataFrame,
     key_columns: list[str],
     dataset_name: str,
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "DQ_001",
+) -> dict:
     """
-    Detect duplicate records based on a configurable composite key.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input data.
-    key_columns : list[str]
-        Columns forming the composite key.
-    dataset_name : str
-        Name of the dataset (for rejection records).
-    id_column : str
-        Column to use as the key_value identifier.
-
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records for duplicates found.
+    Detect duplicate records based on composite key.
     """
-    dupes = df[df.duplicated(subset=key_columns, keep="first")]
-    logger.info(
-        f"[{dataset_name}] Duplicate check on {key_columns}: "
-        f"{len(dupes):,} duplicates found out of {len(df):,} rows"
+
+    duplicate_mask = df.duplicated(
+        subset=key_columns,
+        keep="first"
     )
 
-    records = []
-    for idx, row in dupes.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="DUPLICATE",
-            column="|".join(key_columns),
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason=f"Duplicate on composite key: {key_columns}",
-            original_value=str({col: row[col] for col in key_columns}),
-        ))
+    failed_df = df[duplicate_mask]
 
-    return _build_rejection_df(records)
+    logger.info(
+        f"[{dataset_name}] Duplicate check "
+        f"({key_columns}) -> {len(failed_df):,} duplicates"
+    )
+
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="DUPLICATE",
+        severity="CRITICAL",
+        column="|".join(key_columns),
+        reason=f"Duplicate composite key: {key_columns}",
+        id_column=id_column,
+    )
+
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="DUPLICATE",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="CRITICAL",
+    )
+
+    return _package_result(rejection_df, summary)
 
 
 def check_nulls(
     df: pd.DataFrame,
     mandatory_columns: list[str],
     dataset_name: str,
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "DQ_002",
+) -> dict:
     """
-    Flag records where mandatory fields contain null or empty values.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input data.
-    mandatory_columns : list[str]
-        Columns that must not be null.
-    dataset_name : str
-        Name of the dataset.
-    id_column : str
-        Column to use as the key_value identifier.
-
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records for null violations.
+    Detect null or empty mandatory fields.
     """
-    records = []
+
+    all_failures = []
+
     for col in mandatory_columns:
-        null_mask = df[col].isna() | (df[col].astype(str).str.strip() == "")
-        null_rows = df[null_mask]
 
-        logger.info(
-            f"[{dataset_name}] Null check on '{col}': "
-            f"{len(null_rows):,} nulls found"
+        null_mask = (
+            df[col].isna()
+            |
+            (df[col].astype(str).str.strip() == "")
         )
 
-        for idx, row in null_rows.iterrows():
-            records.append(_rejection_record(
-                dataset=dataset_name,
-                check_type="NULL_VALUE",
-                column=col,
-                key_value=row.get(id_column, ""),
-                row_index=idx,
-                reason=f"Mandatory column '{col}' is null or empty",
-                original_value=str(row[col]),
-            ))
+        failed_df = df[null_mask]
 
-    return _build_rejection_df(records)
+        logger.info(
+            f"[{dataset_name}] Null check '{col}' "
+            f"-> {len(failed_df):,} violations"
+        )
+
+        rejection_df = _create_rejection_df(
+            df=failed_df,
+            dataset_name=dataset_name,
+            rule_id=rule_id,
+            check_type="NULL_CHECK",
+            severity="CRITICAL",
+            column=col,
+            reason=f"Mandatory column '{col}' is null/empty",
+            original_value_column=col,
+            id_column=id_column,
+        )
+
+        all_failures.append(rejection_df)
+
+    final_rejections = (
+        pd.concat(all_failures, ignore_index=True)
+        if all_failures
+        else _empty_rejection_df()
+    )
+
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="NULL_CHECK",
+        rows_checked=len(df),
+        violations=len(final_rejections),
+        severity="CRITICAL",
+    )
+
+    return _package_result(final_rejections, summary)
 
 
 def check_referential_integrity(
@@ -163,59 +227,56 @@ def check_referential_integrity(
     fk_column: str,
     pk_column: str,
     dataset_name: str,
-    ref_dataset_name: str = "reference",
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    ref_dataset_name: str,
+    id_column: str = "outlet_id",
+    rule_id: str = "DQ_003",
+) -> dict:
     """
-    Validate that foreign key values exist in a reference dataset.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Dataset containing the foreign key.
-    ref_df : pd.DataFrame
-        Reference dataset containing the primary key.
-    fk_column : str
-        Foreign key column in df.
-    pk_column : str
-        Primary key column in ref_df.
-    dataset_name : str
-        Name of the source dataset.
-    ref_dataset_name : str
-        Name of the reference dataset.
-    id_column : str
-        Column to use as the key_value identifier.
-
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records for referential integrity violations.
+    Validate foreign key integrity.
     """
-    valid_keys = set(ref_df[pk_column].dropna().unique())
-    orphan_mask = ~df[fk_column].isin(valid_keys)
-    orphans = df[orphan_mask]
 
-    logger.info(
-        f"[{dataset_name}] Referential integrity {fk_column} → "
-        f"{ref_dataset_name}.{pk_column}: {len(orphans):,} orphans found"
+    valid_keys = set(
+        ref_df[pk_column]
+        .dropna()
+        .unique()
     )
 
-    records = []
-    for idx, row in orphans.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="REFERENTIAL_INTEGRITY",
-            column=fk_column,
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason=(
-                f"Value '{row[fk_column]}' in '{fk_column}' not found in "
-                f"{ref_dataset_name}.{pk_column}"
-            ),
-            original_value=str(row[fk_column]),
-        ))
+    orphan_mask = ~df[fk_column].isin(valid_keys)
 
-    return _build_rejection_df(records)
+    failed_df = df[orphan_mask]
+
+    logger.info(
+        f"[{dataset_name}] Referential integrity "
+        f"{fk_column} -> "
+        f"{ref_dataset_name}.{pk_column} "
+        f"-> {len(failed_df):,} violations"
+    )
+
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="REFERENTIAL_INTEGRITY",
+        severity="CRITICAL",
+        column=fk_column,
+        reason=(
+            f"Foreign key not found in "
+            f"{ref_dataset_name}.{pk_column}"
+        ),
+        original_value_column=fk_column,
+        id_column=id_column,
+    )
+
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="REFERENTIAL_INTEGRITY",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="CRITICAL",
+    )
+
+    return _package_result(rejection_df, summary)
 
 
 def check_value_range(
@@ -224,182 +285,205 @@ def check_value_range(
     min_val: float,
     max_val: float,
     dataset_name: str,
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "DQ_004",
+) -> dict:
     """
-    Assert numeric fields fall within expected min/max boundary.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input data.
-    column : str
-        Numeric column to check.
-    min_val : float
-        Minimum allowed value.
-    max_val : float
-        Maximum allowed value.
-    dataset_name : str
-        Name of the dataset.
-    id_column : str
-        Column to use as the key_value identifier.
-
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records for out-of-range values.
+    Detect out-of-range numeric values.
     """
-    out_of_range = df[(df[column] < min_val) | (df[column] > max_val)]
 
-    logger.info(
-        f"[{dataset_name}] Range check on '{column}' "
-        f"[{min_val}, {max_val}]: {len(out_of_range):,} violations"
+    range_mask = (
+        (df[column] < min_val)
+        |
+        (df[column] > max_val)
     )
 
-    records = []
-    for idx, row in out_of_range.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="VALUE_RANGE",
-            column=column,
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason=(
-                f"Value {row[column]} outside allowed range "
-                f"[{min_val}, {max_val}]"
-            ),
-            original_value=str(row[column]),
-        ))
+    failed_df = df[range_mask]
 
-    return _build_rejection_df(records)
+    logger.info(
+        f"[{dataset_name}] Range check '{column}' "
+        f"[{min_val}, {max_val}] "
+        f"-> {len(failed_df):,} violations"
+    )
+
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="VALUE_RANGE",
+        severity="CRITICAL",
+        column=column,
+        reason=(
+            f"Value outside allowed range "
+            f"[{min_val}, {max_val}]"
+        ),
+        original_value_column=column,
+        id_column=id_column,
+    )
+
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="VALUE_RANGE",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="CRITICAL",
+    )
+
+    return _package_result(rejection_df, summary)
 
 
 def check_format(
     df: pd.DataFrame,
     column: str,
-    pattern: str,
+    regex_pattern: str,
     dataset_name: str,
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "DQ_005",
+) -> dict:
     """
-    Validate fields conform to an expected regex format.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input data.
-    column : str
-        Column to validate.
-    pattern : str
-        Regex pattern the values should match (e.g., r"^OUT_\\d{5}$").
-    dataset_name : str
-        Name of the dataset.
-    id_column : str
-        Column to use as the key_value identifier.
-
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records for format violations.
+    Validate regex format compliance.
     """
-    non_null = df[df[column].notna()].copy()
-    match_mask = non_null[column].astype(str).str.match(pattern)
-    violations = non_null[~match_mask]
 
-    logger.info(
-        f"[{dataset_name}] Format check on '{column}' "
-        f"(pattern: {pattern}): {len(violations):,} violations"
+    non_null_df = df[df[column].notna()].copy()
+
+    invalid_mask = ~non_null_df[column].astype(str).str.match(
+        regex_pattern
     )
 
-    records = []
-    for idx, row in violations.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="FORMAT_VIOLATION",
-            column=column,
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason=f"Value '{row[column]}' does not match pattern '{pattern}'",
-            original_value=str(row[column]),
-        ))
+    failed_df = non_null_df[invalid_mask]
 
-    return _build_rejection_df(records)
+    logger.info(
+        f"[{dataset_name}] Format check '{column}' "
+        f"-> {len(failed_df):,} violations"
+    )
 
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="FORMAT_CHECK",
+        severity="CRITICAL",
+        column=column,
+        reason=f"Invalid format for '{column}'",
+        original_value_column=column,
+        id_column=id_column,
+    )
 
-# ── Transaction-Specific Forensic Checks ─────────────────────
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="FORMAT_CHECK",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="CRITICAL",
+    )
 
+    return _package_result(rejection_df, summary)
+
+# FORENSIC CHECKS
 
 def check_negative_volumes(
     df: pd.DataFrame,
-    volume_column: str = "Volume_Liters",
+    volume_column: str,
     dataset_name: str = "transactions",
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "FQ_001",
+) -> dict:
     """
-    Detect negative volume rows — these are returns/reversals, NOT errors.
-    Tag them for forensic analysis rather than dropping.
+    Detect negative transaction volumes.
 
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records tagged as NEGATIVE_VOLUME (quarantined for analysis).
+    IMPORTANT:
+    These may represent:
+    - returns
+    - reversals
+    - corrections
+
+    Therefore:
+    - tagged as WARNING
+    - NOT automatically removed
     """
-    negatives = df[df[volume_column] < 0]
+
+    negative_mask = df[volume_column] < 0
+
+    failed_df = df[negative_mask]
 
     logger.info(
-        f"[{dataset_name}] Negative volume check: "
-        f"{len(negatives):,} rows with negative {volume_column}"
+        f"[{dataset_name}] Negative volume forensic check "
+        f"-> {len(failed_df):,} observations"
     )
 
-    records = []
-    for idx, row in negatives.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="NEGATIVE_VOLUME",
-            column=volume_column,
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason=(
-                f"Negative volume ({row[volume_column]:.2f} L) — "
-                f"likely return/reversal. Tagged for aggregation, not dropped."
-            ),
-            original_value=str(row[volume_column]),
-        ))
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="NEGATIVE_VOLUME",
+        severity="WARNING",
+        column=volume_column,
+        reason=(
+            "Negative transaction volume detected "
+            "(possible reversal/return)"
+        ),
+        original_value_column=volume_column,
+        id_column=id_column,
+    )
 
-    return _build_rejection_df(records)
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="NEGATIVE_VOLUME",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="WARNING",
+    )
+
+    return _package_result(rejection_df, summary)
 
 
 def check_zero_volumes(
     df: pd.DataFrame,
-    volume_column: str = "Volume_Liters",
+    volume_column: str,
     dataset_name: str = "transactions",
-    id_column: str = "Outlet_ID",
-) -> pd.DataFrame:
+    id_column: str = "outlet_id",
+    rule_id: str = "FQ_002",
+) -> dict:
     """
-    Detect zero-volume rows — system adjustments or fee entries.
+    Detect zero transaction volumes.
 
-    Returns
-    -------
-    pd.DataFrame
-        Rejection records tagged as ZERO_VOLUME.
+    Often:
+    - system adjustments
+    - placeholder records
+    - fee entries
     """
-    zeros = df[df[volume_column] == 0.0]
+
+    zero_mask = df[volume_column] == 0
+
+    failed_df = df[zero_mask]
 
     logger.info(
-        f"[{dataset_name}] Zero volume check: "
-        f"{len(zeros):,} rows with exactly 0.0 {volume_column}"
+        f"[{dataset_name}] Zero volume forensic check "
+        f"-> {len(failed_df):,} observations"
     )
 
-    records = []
-    for idx, row in zeros.iterrows():
-        records.append(_rejection_record(
-            dataset=dataset_name,
-            check_type="ZERO_VOLUME",
-            column=volume_column,
-            key_value=row.get(id_column, ""),
-            row_index=idx,
-            reason="Zero volume — likely system adjustment or fee entry",
-            original_value=str(row[volume_column]),
-        ))
+    rejection_df = _create_rejection_df(
+        df=failed_df,
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="ZERO_VOLUME",
+        severity="INFO",
+        column=volume_column,
+        reason="Zero-volume transaction detected",
+        original_value_column=volume_column,
+        id_column=id_column,
+    )
 
-    return _build_rejection_df(records)
+    summary = _build_summary(
+        dataset_name=dataset_name,
+        rule_id=rule_id,
+        check_type="ZERO_VOLUME",
+        rows_checked=len(df),
+        violations=len(rejection_df),
+        severity="INFO",
+    )
+
+    return _package_result(rejection_df, summary)

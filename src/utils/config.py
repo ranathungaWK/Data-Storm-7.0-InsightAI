@@ -71,13 +71,14 @@ def ensure_dirs(config: dict) -> None:
     config : dict
         Loaded pipeline config.
     """
+    paths = config.get("paths", {})
     dirs_to_create = [
-        config["paths"]["bronze"]["root"],
-        config["paths"]["bronze"]["poi_raw"],
-        config["paths"]["silver"]["root"],
-        config["paths"]["silver"]["rejected_dir"],
-        config["paths"]["gold"]["root"],
-        config["paths"]["output"]["report"],
+        paths.get("bronze", {}).get("root", "data/bronze"),
+        paths.get("bronze", {}).get("poi_raw", "data/bronze/poi_raw"),
+        paths.get("silver", {}).get("root", paths.get("silver", {}).get("cleaned_dir", "data/silver/cleaned")),
+        paths.get("silver", {}).get("rejected_dir", "data/silver/rejected"),
+        paths.get("gold", {}).get("root", "data/gold"),
+        paths.get("output", {}).get("report", "output/report"),
         "logs",
         "ai_log/prompt_archive",
         "experiments",

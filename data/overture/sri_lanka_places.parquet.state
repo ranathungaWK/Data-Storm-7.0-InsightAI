@@ -1,0 +1,14 @@
+{
+  "last_release": "2026-04-15.0",
+  "last_run": "2026-05-16T20:46:33.390777+00:00",
+  "theme": "places",
+  "type": "place",
+  "bbox": {
+    "xmin": 79.5,
+    "ymin": 5.9,
+    "xmax": 81.9,
+    "ymax": 9.9
+  },
+  "backend": "geoparquet",
+  "output": "C:\\KR\\work\\Programming\\kaggle_competitions\\potential_outlets\\Data-Storm-7.0-InsightAI\\data\\overture\\sri_lanka_places.parquet"
+}

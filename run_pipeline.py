@@ -38,8 +38,27 @@ def run_gold(config: dict) -> None:
     logger.info("=" * 60)
     logger.info("STAGE 3: GOLD — Feature Engineering")
     logger.info("=" * 60)
-    # TODO: Wire up gold feature scripts
-    logger.warning("Gold stage not yet implemented.")
+    # Run gold scripts in dependency order.
+    import runpy
+
+    try:
+        logger.info("Running src/gold/feature_poi.py")
+        runpy.run_path("src/gold/feature_poi.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running feature_poi.py")
+
+    try:
+        logger.info("Running src/gold/build_outlet_features.py")
+        runpy.run_path("src/gold/build_outlet_features.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running build_outlet_features.py")
+
+    # compute potential target after features are built
+    try:
+        logger.info("Running src/models/build_potential_target.py")
+        runpy.run_path("src/models/build_potential_target.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running build_potential_target.py")
 
 
 def run_predict(config: dict) -> None:
@@ -47,8 +66,25 @@ def run_predict(config: dict) -> None:
     logger.info("=" * 60)
     logger.info("STAGE 4: PREDICT — Demand Estimation")
     logger.info("=" * 60)
-    # TODO: Wire up modeling scripts
-    logger.warning("Predict stage not yet implemented.")
+    import runpy
+
+    try:
+        logger.info("Running src/models/cluster_profiles.py")
+        runpy.run_path("src/models/cluster_profiles.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running cluster_profiles.py")
+
+    try:
+        logger.info("Running src/models/opportunity_recommendations.py")
+        runpy.run_path("src/models/opportunity_recommendations.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running opportunity_recommendations.py")
+
+    try:
+        logger.info("Running src/models/train_market_demand_model.py")
+        runpy.run_path("src/models/train_market_demand_model.py", run_name="__main__")
+    except Exception:
+        logger.exception("Failed running train_market_demand_model.py")
 
 
 STAGES = {
