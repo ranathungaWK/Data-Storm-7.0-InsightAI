@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+<text x="10" y="40" font-size="12">revenue_per_tx</text>
+<rect x="200" y="20" width="400" height="30" fill="#1f77b4" />
+<text x="605" y="40" font-size="12">78110.9</text>
+<text x="10" y="80" font-size="12">avg_monthly_volume</text>
+<rect x="200" y="60" width="347" height="30" fill="#1f77b4" />
+<text x="552" y="80" font-size="12">67867.8</text>
+<text x="10" y="120" font-size="12">volume_std</text>
+<rect x="200" y="100" width="267" height="30" fill="#1f77b4" />
+<text x="472" y="120" font-size="12">52201.3</text>
+<text x="10" y="160" font-size="12">avg_monthly_volume_calendar</text>
+<rect x="200" y="140" width="242" height="30" fill="#1f77b4" />
+<text x="447" y="160" font-size="12">47355.7</text>
+<text x="10" y="200" font-size="12">total_revenue</text>
+<rect x="200" y="180" width="207" height="30" fill="#1f77b4" />
+<text x="412" y="200" font-size="12">40530.8</text>
+<text x="10" y="240" font-size="12">transaction_count</text>
+<rect x="200" y="220" width="174" height="30" fill="#1f77b4" />
+<text x="379" y="240" font-size="12">34123.9</text>
+<text x="10" y="280" font-size="12">total_volume</text>
+<rect x="200" y="260" width="57" height="30" fill="#1f77b4" />
+<text x="262" y="280" font-size="12">11193.7</text>
+<text x="10" y="320" font-size="12">volume_cv</text>
+<rect x="200" y="300" width="47" height="30" fill="#1f77b4" />
+<text x="252" y="320" font-size="12">9348.8</text>
+<text x="10" y="360" font-size="12">nearest_competitor_distance</text>
+<rect x="200" y="340" width="20" height="30" fill="#1f77b4" />
+<text x="225" y="360" font-size="12">4024.0</text>
+<text x="10" y="400" font-size="12">saturation_score</text>
+<rect x="200" y="380" width="20" height="30" fill="#1f77b4" />
+<text x="225" y="400" font-size="12">3931.2</text>
+</svg>

@@ -1,0 +1,4 @@
+metric,value
+master_records,20000
+coord_records,20000
+rejected_records_estimate,236

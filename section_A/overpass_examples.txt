@@ -1,0 +1,17 @@
+# Overpass query examples
+
+# 500m query example (replace LAT, LON):
+[out:json][timeout:25];
+(
+  node(around:500, LAT, LON)["amenity"~"supermarket|school|bank|restaurant|bus_stop|hospital|pharmacy|fuel_station|shopping_mall"];
+  way(around:500, LAT, LON)["amenity"~"supermarket|school|bank|restaurant|bus_stop|hospital|pharmacy|fuel_station|shopping_mall"];
+);
+out center;
+
+# 1km query example:
+[out:json][timeout:25];
+(
+  node(around:1000, LAT, LON)["amenity"~"supermarket|school|bank|restaurant|bus_stop|hospital|pharmacy|fuel_station|shopping_mall"];
+  way(around:1000, LAT, LON)["amenity"~"supermarket|school|bank|restaurant|bus_stop|hospital|pharmacy|fuel_station|shopping_mall"];
+);
+out center;

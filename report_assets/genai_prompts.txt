@@ -1,0 +1,7 @@
+Design a geospatial feature engineering pipeline for FMCG outlet potential estimation using latitude and longitude coordinates.
+
+How can censored demand be approximated when only observed outlet sales are available?
+
+Create Overpass API queries to collect commercial POIs around retail outlets.
+
+Create a feature list and one-line business justification for each geospatial feature.

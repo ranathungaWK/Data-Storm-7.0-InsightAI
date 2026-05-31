@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="120">
+<text x="10" y="20" font-size="14">RMSE: 204.29</text>
+<text x="10" y="38" font-size="14">MAE: 55.03</text>
+<text x="10" y="56" font-size="14">R2: 0.819</text>
+</svg>

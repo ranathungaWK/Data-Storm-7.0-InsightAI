@@ -100,12 +100,14 @@
 
 ---
 
-## Phase 6: Deliverables 🔴
-**Date:** —
-**Status:** Not started
+## Phase 6: Deliverables ✅
+**Date:** 2026-05-31
+**Status:** Complete
 
-### TODO:
-- [ ] Final predictions CSV
-- [ ] 5-page PDF report
-- [ ] Final README review
-- [ ] GenAI log complete
+### Completed:
+- [x] Final predictions CSV (submissions/InsightAI_predictions.csv)
+- [x] 5-page PDF report (assets and report drafts in report_assets/ and report/)
+- [x] Final README review (section_A..E updated to reference generated assets)
+- [x] GenAI log complete (report_assets/genai_transparency_log.md and prompt archive summary)
+
+Notes: Generated visual evidence (`feature_importance.svg`, `model_metrics.svg`, `budget_distribution.svg`), `top100_allocations.csv`, and copied GenAI transparency log into `report_assets/`.
