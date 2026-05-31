@@ -34,6 +34,11 @@ def setup_logging(config: dict | None = None) -> None:
     if config is None:
         config = load_config()
 
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     log_cfg = config.get("logging", {})
     level = getattr(logging, log_cfg.get("level", "INFO"))
     fmt = log_cfg.get(

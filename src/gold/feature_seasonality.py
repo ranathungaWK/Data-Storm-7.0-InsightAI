@@ -24,7 +24,8 @@ def build_seasonality_features(
 
     # DATE NORMALIZATION
 
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True).dt.tz_convert(None)
+    df["date_key"] = df["date"].dt.strftime("%Y-%m-%d")
 
     df["year"] = df["date"].dt.year
     df["month"] = df["date"].dt.month
@@ -33,11 +34,13 @@ def build_seasonality_features(
 
     # HOLIDAY FEATURE ENGINEERING
 
-    holiday_df["date"] = pd.to_datetime(holiday_df["date"], errors="coerce")
+    holiday_df["date"] = pd.to_datetime(holiday_df["date"], errors="coerce", utc=True).dt.tz_convert(None)
+    holiday_lookup = holiday_df[["date"]].dropna().drop_duplicates().copy()
+    holiday_lookup["date_key"] = holiday_lookup["date"].dt.strftime("%Y-%m-%d")
 
     df = df.merge(
-        holiday_df[["date"]],
-        on="date",
+        holiday_lookup[["date_key"]],
+        on="date_key",
         how="left",
         indicator=True
     )
@@ -48,12 +51,19 @@ def build_seasonality_features(
 
     # HOLIDAY DISTANCE FEATURE
 
-    holiday_dates = holiday_df["date"].dropna().unique()
+    holiday_dates = pd.to_datetime(
+        holiday_lookup["date"],
+        errors="coerce"
+    ).dropna().to_numpy(dtype="datetime64[ns]")
 
-    df["days_to_nearest_holiday"] = df["date"].apply(
-        lambda x: np.min(np.abs((holiday_dates - x).astype("timedelta64[D]")))
-        if pd.notnull(x) else np.nan
-    )
+    def nearest_holiday_days(x: pd.Timestamp) -> float:
+        if pd.isna(x) or holiday_dates.size == 0:
+            return np.nan
+        x_value = np.datetime64(x.to_datetime64())
+        deltas = np.abs((holiday_dates - x_value) / np.timedelta64(1, "D"))
+        return float(np.min(deltas))
+
+    df["days_to_nearest_holiday"] = df["date"].apply(nearest_holiday_days)
 
     # WEEKEND FEATURE
 
@@ -72,9 +82,14 @@ def build_seasonality_features(
     if "month" in distributor_df.columns:
 
         distributor_df["month"] = distributor_df["month"].astype(int)
+        distributor_monthly = (
+            distributor_df
+            .groupby("month", as_index=False)
+            .mean(numeric_only=True)
+        )
 
         df = df.merge(
-            distributor_df,
+            distributor_monthly,
             on="month",
             how="left"
         )
@@ -101,4 +116,4 @@ def build_seasonality_features(
 
     logger.info(f"Seasonality features created: {df.shape}")
 
-    return df
+    return df.drop(columns=["date_key"])

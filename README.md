@@ -1,3 +1,98 @@
+**Data-Storm-7.0-InsightAI Pipeline**
+
+Overview
+--------
+This repository contains the ETL and modeling pipeline used for the Data-Storm InsightAI competition. The pipeline ingests raw data, builds features (bronze → silver → gold), trains models, and produces prediction and reporting artifacts.
+
+Quick Start
+-----------
+1. Install Python (3.10+ recommended) and Git.
+2. Create and activate a virtual environment from the repo root:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1   # PowerShell
+# On Linux / macOS: source .venv/bin/activate
+```
+
+3. Install python dependencies:
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+4. Run the full pipeline (examples):
+
+```bash
+# Run full pipeline
+python run_pipeline.py --stage full
+
+# Run only data cleaning / silver stage
+python run_pipeline.py --stage silver
+
+# Run feature engineering / gold stage
+python run_pipeline.py --stage gold
+
+# Run model training
+python run_pipeline.py --stage models
+```
+
+5. View the dashboard (Streamlit):
+
+```bash
+python -m streamlit run output/dashboard/app.py
+```
+
+Logging
+-------
+- The project logging is configured in `src/utils/logger.py`. On Windows the logger is configured to use UTF-8 for console output to avoid encoding errors.
+- Pipeline logs are written to files such as `sandbox_full_pipeline.log` or `full_pipeline.log` depending on how you run the pipeline.
+
+Main Artifacts
+--------------
+- Predictions and model outputs: `data/models/`
+- Reports and summaries: `output/report/` and `data/models/*.md` or `.csv`
+- Dashboard: `output/dashboard/`
+
+Folder Structure
+----------------
+- **data/**: raw and processed datasets and model artifacts
+  - `data/external/` — large external inputs (OSM, etc.)
+  - `data/silver/`, `data/gold/`, `data/models/` — processed data at different pipeline stages
+- **src/**: code for ETL, feature engineering, and models
+  - `src/bronze/`, `src/silver/`, `src/gold/`, `src/models/` — stage-specific modules
+  - `src/utils/` — shared utilities (logging, helpers)
+- **notebooks/**: Jupyter notebooks for exploration and audits
+- **output/**: dashboards and reports (Streamlit app, report scripts)
+- **config/**: pipeline configuration files (`pipeline_config.yaml`)
+- **logs/**: run logs, rejection manifests, metrics
+- **experiments/**: experiment notes and logs
+- **cache/**: API/cache artifacts (local cache — safe to delete if you need space)
+
+Development & Tests
+-------------------
+- Use the virtual environment when running scripts or tests.
+- If there are tests, run with `pytest` from the repo root:
+
+```bash
+python -m pytest -q
+```
+
+Notes & Best Practices
+----------------------
+- Always use the same timezone/`datetime` normalization in feature engineering. The pipeline normalizes datetimes before joins in `src/gold/feature_seasonality.py`.
+- Avoid running full pipeline on a machine with low RAM; pre-aggregate large joins (distributor/monthly) to reduce memory pressure.
+- If you see Unicode errors on Windows console, ensure the environment activates the `.venv` and that logging is used via the configured logger.
+
+Contributing
+------------
+- Create a branch for your change: `git checkout -b fix/your-change`
+- Make small, focused commits and open a PR against `main`.
+
+Contact
+-------
+If you need help running the pipeline or reproducing results, open an issue or ping the repository maintainer.
 # Data Storm 7.0 — InsightAI
 
 > **Competition:** Data Storm 7.0 — Storming Round (36-hour hackathon)
